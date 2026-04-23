@@ -8,21 +8,21 @@
     <script>
     ZOHO.embeddedApp.on("PageLoad", function(data) {
 
-        var recId       = data.EntityId[0];
-        var accountName = (data.EntityData && data.EntityData.Account_Name) ? data.EntityData.Account_Name : "This Account";
-        var calderType  = (data.EntityData && data.EntityData.Calder_Type)  ? data.EntityData.Calder_Type  : "";
-        var validTypes  = ["PEG", "PEG (Search)"];
+        var recId = data.EntityId[0];
 
         function showError(msg) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;">' +
                 '<div style="font-size:15px;color:#c62828;margin-bottom:8px;">Error</div>' +
                 '<div style="font-size:13px;color:#555;margin-bottom:16px;">' + msg + '</div>' +
-                '<button onclick="ZOHO.CRM.UI.Popup.close()" style="padding:8px 20px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;">Close</button>' +
+                '<button id="errCloseBtn" style="padding:8px 20px;border:1px solid #ccc;border-radius:4px;background:#fff;cursor:pointer;">Close</button>' +
                 '</div>';
+            document.getElementById("errCloseBtn").addEventListener("click", function() {
+                ZOHO.CRM.UI.Popup.close();
+            });
         }
 
-        function showSuccess() {
+        function showSuccess(accountName) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;min-width:360px;">' +
                 '<div style="font-size:32px;color:#2e7d32;">&#10003;</div>' +
@@ -30,11 +30,14 @@
                 '<div style="font-size:13px;color:#888;margin-top:6px;">' + accountName + ' has been updated.</div>' +
                 '<div style="font-size:12px;color:#555;margin-top:10px;">Reload the record to see all updated fields.</div>' +
                 '<div style="margin-top:20px;">' +
-                '<button onclick="ZOHO.CRM.UI.Popup.close()" style="padding:9px 20px;border:none;border-radius:4px;background:#0066cc;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;">Close</button>' +
+                '<button id="successCloseBtn" style="padding:9px 20px;border:none;border-radius:4px;background:#0066cc;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;">Close</button>' +
                 '</div></div>';
+            document.getElementById("successCloseBtn").addEventListener("click", function() {
+                ZOHO.CRM.UI.Popup.close();
+            });
         }
 
-        function showConfirm() {
+        function showConfirm(accountName, calderType) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;min-width:380px;">' +
                 '<div style="font-size:17px;font-weight:bold;color:#222;margin-bottom:6px;">PEG Classifier</div>' +
@@ -56,11 +59,11 @@
             });
 
             document.getElementById("runBtn").addEventListener("click", function() {
-                runClassification();
+                runClassification(accountName);
             });
         }
 
-        function runClassification() {
+        function runClassification(accountName) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;min-width:360px;">' +
                 '<div style="font-size:16px;color:#444;margin-bottom:8px;">Analyzing...</div>' +
@@ -87,18 +90,28 @@
                     showError("Skipped: " + (result.message || "No website found."));
                     return;
                 }
-                showSuccess();
+                showSuccess(accountName);
             }).catch(function(err) {
                 showError("Function call failed: " + JSON.stringify(err));
             });
         }
 
-        if(validTypes.indexOf(calderType) === -1) {
-            showError("Calder Type is " + calderType + ". This tool only runs on PEG and PEG (Search) accounts.");
-            return;
-        }
+        // Fetch the record directly to get Calder_Type reliably
+        ZOHO.CRM.API.getRecord({ Entity: "Accounts", RecordID: recId }).then(function(recordData) {
+            var rec         = recordData.data[0];
+            var accountName = rec.Account_Name || "This Account";
+            var calderType  = rec.Calder_Type  || "";
+            var validTypes  = ["PEG", "PEG (Search)"];
 
-        showConfirm();
+            if(validTypes.indexOf(calderType) === -1) {
+                showError("Calder Type is " + (calderType || "(empty)") + ". This tool only runs on PEG and PEG (Search) accounts.");
+                return;
+            }
+
+            showConfirm(accountName, calderType);
+        }).catch(function(err) {
+            showError("Could not load account record: " + JSON.stringify(err));
+        });
 
     });
 
