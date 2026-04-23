@@ -76,6 +76,12 @@
                 var result;
                 try {
                     var raw = response.details.output;
+                    // Extract first valid JSON object from raw output
+                    var start = raw.indexOf("{");
+                    var end = raw.lastIndexOf("}");
+                    if(start >= 0 && end > start) {
+                        raw = raw.substring(start, end + 1);
+                    }
                     result = JSON.parse(raw);
                 } catch(e) {
                     showError("Could not parse result: " + JSON.stringify(response));
@@ -87,10 +93,6 @@
                 }
                 if(result.status === "skipped") {
                     showError("Skipped: " + (result.message || "No website found."));
-                    return;
-                }
-                if(result.status === "debug") {
-                    showError("DEBUG: " + (result.message || ""));
                     return;
                 }
                 showSuccess(accountName);
