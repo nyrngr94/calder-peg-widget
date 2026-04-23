@@ -7,9 +7,9 @@
     <script src="./ZohoEmbededAppSDK.min.js"></script>
     <script>
     ZOHO.embeddedApp.on("PageLoad", function(data) {
-
+ 
         var recId = data.EntityId[0];
-
+ 
         function showError(msg) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;">' +
@@ -21,7 +21,7 @@
                 ZOHO.CRM.UI.Popup.close();
             });
         }
-
+ 
         function showSuccess(accountName) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;min-width:360px;">' +
@@ -36,7 +36,7 @@
                 ZOHO.CRM.UI.Popup.close();
             });
         }
-
+ 
         function showConfirm(accountName, calderType) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;min-width:380px;">' +
@@ -53,7 +53,7 @@
                 '<button id="cancelBtn" style="padding:9px 20px;border:1px solid #ccc;border-radius:4px;background:#fff;color:#444;font-size:14px;cursor:pointer;">Cancel</button>' +
                 '<button id="runBtn" style="padding:9px 20px;border:none;border-radius:4px;background:#0066cc;color:#fff;font-size:14px;font-weight:bold;cursor:pointer;">Run Classification</button>' +
                 '</div></div>';
-
+ 
             document.getElementById("cancelBtn").addEventListener("click", function() {
                 ZOHO.CRM.UI.Popup.close();
             });
@@ -61,7 +61,7 @@
                 runClassification(accountName);
             });
         }
-
+ 
         function runClassification(accountName) {
             document.getElementById("app").innerHTML =
                 '<div style="font-family:Arial,sans-serif;padding:24px;text-align:center;min-width:360px;">' +
@@ -69,7 +69,7 @@
                 '<div style="font-size:13px;color:#888;margin-bottom:20px;">Scraping website and calling Claude AI.<br>This may take 30-60 seconds.</div>' +
                 '<div class="spinner"></div>' +
                 '</div>';
-
+ 
             ZOHO.CRM.FUNCTIONS.execute("peg_classify_account", {
                 arguments: JSON.stringify({ accountId: recId.toString() })
             }).then(function(response) {
@@ -89,18 +89,22 @@
                     showError("Skipped: " + (result.message || "No website found."));
                     return;
                 }
+                if(result.status === "debug") {
+                    showError("DEBUG: " + (result.message || ""));
+                    return;
+                }
                 showSuccess(accountName);
             }).catch(function(err) {
                 showError("Function call failed: " + JSON.stringify(err));
             });
         }
-
+ 
         ZOHO.CRM.API.getRecord({ Entity: "Accounts", RecordID: recId }).then(function(recordData) {
             var rec         = recordData.data[0];
             var accountName = rec.Account_Name || "This Account";
             var calderType  = rec.Calder_Type  || "";
             var validTypes  = ["PEG", "PEG (Search)"];
-
+ 
             if(validTypes.indexOf(calderType) === -1) {
                 showError("Calder Type is " + (calderType || "(empty)") + ". This tool only runs on PEG and PEG (Search) accounts.");
                 return;
@@ -109,9 +113,9 @@
         }).catch(function(err) {
             showError("Could not load account record: " + JSON.stringify(err));
         });
-
+ 
     });
-
+ 
     ZOHO.embeddedApp.init();
     </script>
     <style>
